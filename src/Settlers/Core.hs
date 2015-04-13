@@ -4,26 +4,18 @@ module Settlers.Core where
 import Data.Functor
 import Data.Sequence
 
-import qualified Game as G
+--import qualified Game as G
+import Game as G
 import qualified Engine as E
 import Maps
 
 data Settlers
-
-instance G.Game Settlers where
-  type GameState Settlers = GameState
-  type PlayerId Settlers = PlayerId
-  type VisibleState Settlers = VisibleState
-  type DataToPlayer Settlers = DataToPlayer
-  type DataFromPlayer Settlers = DataFromPlayer
 
 data Dice = D1 | D2 | D3 | D4 | D5 | D6 deriving (Show, Eq, Ord, Enum)
 data EventDice
 type DiceRoll = (Dice, EventDice)
 
 data ResourceType = RLumber | RWheat | RWool | ROre | RClay | RGold deriving (Show, Eq, Enum)
-
-data PlayerId = Player1 | Player2 deriving (Eq, Show)
 
 newtype ResourceAmount = ResourceAmount Int deriving (Eq, Show, Ord)
 data ResourceAmountArea = RZero | ROne | RTwo | RThree
@@ -69,25 +61,38 @@ data OponentState =
     osRightRoad :: Bool
   }
 
-data GameState = 
-  GameState { 
-    gsTurnNo :: Int,
-    gsCurPlayer :: PlayerId,
-    gsPlayerStates :: ( PlayerState, PlayerState ),
-    gsAbilityDecks :: Seq (Seq HandCard),
-    gsResourceDeck :: Seq ResourceCard,
-    gsEventsDeck :: Seq EventCard
-  }
+instance Game Settlers where
 
-data VisibleState = 
-  VisibleState {
-    vsTurnNo :: Int,
-    vsCurPlayer :: PlayerId,
-    vsMyState :: PlayerState,
-    vsOponentState :: OponentState,
-    vsAbilityDeckSizes :: Seq Int,
-    vsResourceDecSize :: Int
-  }
+  data PlayerId Settlers = Player1 | Player2 deriving (Eq, Show, Enum)
+
+  data GameState Settlers = 
+    GameState { 
+      gsTurnNo :: Int,
+      gsCurPlayer :: PlayerId Settlers,
+      gsPlayerStates :: ( PlayerState, PlayerState ),
+      gsAbilityDecks :: Seq (Seq HandCard),
+      gsResourceDeck :: Seq ResourceCard,
+      gsEventsDeck :: Seq EventCard
+    }
+
+  data VisibleState Settlers = 
+    VisibleState {
+      vsTurnNo :: Int,
+      vsCurPlayer :: PlayerId Settlers,
+      vsMyState :: PlayerState,
+      vsOponentState :: OponentState,
+      vsAbilityDeckSizes :: Seq Int,
+      vsResourceDecSize :: Int
+    }
+
+  data DataToPlayer Settlers = 
+    ShowDeck (Seq DeckCard) ForChoice |
+    UpdateState (VisibleState Settlers)|
+    Message String
+
+  data GameSettings Settlers = GameSettings
+
+  data DataFromPlayer Settlers = PlayerChoice Int
 
 data ResourceArea = ResourceArea ResourceType ResourceAmountArea
 data ResourceCard = ResourceCard ResourceType Dice
@@ -98,13 +103,6 @@ data DeckCard =
   DResourceCard ResourceCard | 
   DHandCard HandCard |
   DEventCard EventCard
-
-data DataToPlayer = 
-  ShowDeck (Seq DeckCard) ForChoice |
-  UpdateState VisibleState |
-  Message String
-
-data DataFromPlayer = PlayerChoice Int
 
 data SettlersCfg = 
   SettlersCfg {
