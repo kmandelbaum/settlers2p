@@ -1,7 +1,6 @@
 {-# LANGUAGE TypeFamilies, StandaloneDeriving, FlexibleInstances #-}
 module Main where
 
-
 import Settlers.Core
 import Settlers.Game
 import Engine
@@ -14,8 +13,8 @@ import Data.Maybe
 
 import System.IO
 import Pipes
-import Pipes.PseudoParal
 import Pipes.Concurrent
+import Pipes.PseudoParal
 import qualified Pipes.Prelude as PP
 import Game
 
@@ -74,12 +73,10 @@ spawnIO o i cln = do
       unless eof $ do
         str <- getLine
         continue <- atomically $ send o (FromPlayer (PID 0) (DFromPlayer (read str)))
-        when continue reader
-        cln
+        if continue then reader else cln
     writer = do
       z <- atomically $ recv i
-      when (isJust z) $ print (fromJust z) >> writer
-      cln
+      if (isJust z) then print (fromJust z) >> writer else cln
 
 main :: IO ()
 main = do

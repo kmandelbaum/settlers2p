@@ -6,6 +6,8 @@ import Settlers.Core
 import Control.Applicative
 import Control.Monad
 import Control.Monad.State
+import Control.Monad.Reader
+
 import qualified Data.Sequence as S
 
 import Game
@@ -15,7 +17,6 @@ import Pipes.PseudoParal
 import qualified Pipes.Prelude as PP
 
 import qualified Engine as E
-import qualified Settlers.Const as C
 import EngineMonad
 
 playTurn :: Monad m => EngineAction m Bool
@@ -26,10 +27,11 @@ initPlayer p = E.withPlayerMeta p interaction
   where
     interaction = do
       g <- get
+      initialCardsNo <- cfgHandCardsNo <$> ask
       let deck = fmap DHandCard $ gsAbilityDecks g `S.index` fromEnum p
-      E.pipeToMeta $ yield $ ShowDeck deck $ ForChoice C.initialCards
+      E.pipeToMeta $ yield $ ShowDeck deck $ ForChoice initialCardsNo
       timer <- lift $ setTimeout (Delay 60)
-      cards <- E.withTimer timer $ awaitList C.initialCards
+      cards <- E.withTimer timer $ awaitList initialCardsNo
       return True
 
 startGame :: Monad m => EngineAction m Bool

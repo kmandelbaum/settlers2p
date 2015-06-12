@@ -15,8 +15,8 @@ import qualified Control.Concurrent.Timer as T
 import Data.Int
 
 newtype EngineMonad g m r = 
-  EM (ReaderT (GameSettings g) (StateT (GameState g) (EngineT g m)) r )
-  deriving (Functor, Monad, Applicative, MonadState (GameState g), MonadIO)
+  EM (StateT (GameState g) (ReaderT (GameSettings g) (EngineT g m)) r )
+  deriving (Functor, Monad, Applicative, MonadState (GameState g), MonadIO, MonadReader(GameSettings g))
 
 type EngineT g m = ProgramT (EngineInstr g m) m
 
@@ -36,4 +36,3 @@ setTimeout = EM . lift . lift . singleton . SetTimeout
 
 killTimer :: Monad m => Timer -> EngineMonad g m ()
 killTimer = EM . lift . lift . singleton . KillTimer
-

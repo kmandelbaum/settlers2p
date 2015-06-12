@@ -87,10 +87,17 @@ instance Game Settlers where
 
   data DataToPlayer Settlers = 
     ShowDeck (Seq DeckCard) ForChoice |
-    UpdateState (VisibleState Settlers)|
+    UpdateState (VisibleState Settlers) |
     Message String
 
-  data GameSettings Settlers = GameSettings
+  data GameSettings Settlers = 
+    GameSettings {
+      cfgSettleExt :: IdMap SettleExtension,
+      cfgTownExt :: IdMap TownExtension,
+      cfgAbility :: IdMap Ability,
+      cfgEvent :: IdMap Event,
+      cfgHandCardsNo :: Int
+    }
 
   data DataFromPlayer Settlers = PlayerChoice Int
 
@@ -103,11 +110,3 @@ data DeckCard =
   DResourceCard ResourceCard | 
   DHandCard HandCard |
   DEventCard EventCard
-
-data SettlersCfg = 
-  SettlersCfg {
-    cfgSettleExt :: IdMap SettleExtension,
-    cfgTownExt :: IdMap TownExtension,
-    cfgAbility :: IdMap Ability,
-    cfgEvent :: IdMap Event
-  }

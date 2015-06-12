@@ -1,5 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, 
- TypeFamilies, GADTs, DataKinds, AllowAmbiguousTypes #-}
+ TypeFamilies, GADTs, DataKinds, FlexibleContexts #-}
 module Engine where
 
 import Game
@@ -106,7 +106,7 @@ mkGameRunner :: (Applicative m, MonadIO m) => GameSettings g -> GameState g -> E
 mkGameRunner cfg g e = do
   (inChanIn@(Output ii), inChanOut, sealIn) <- liftIO $ spawn' unbounded
   (outChanIn, outChanOut, sealOut) <- liftIO $ spawn' unbounded
-  let z = fmap fst $ runEngineT inChanIn $ runStateT (runReaderT ef cfg) g
+  let z = fmap fst $ runEngineT inChanIn $ runReaderT (runStateT ef g) cfg
       EM ef = (runEffect (((fromInput inChanOut >-> e) `for` body) >-> toOutput outChanIn)) 
   return (Output (ii . Right), outChanOut, z, atomically(sealIn >> sealOut))
   where body (Right x) = yield x
