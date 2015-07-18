@@ -31,7 +31,6 @@ instance Game Simplest where
   data GameState Simplest = St Int deriving (Eq, Show)
   data GameSettings Simplest = Gs Int deriving (Eq, Show)
   data PlayerId Simplest = PID Int deriving (Eq, Show)
-  data VisibleState Simplest = Vs Int deriving (Eq, Show)
   data DataToPlayer Simplest = DToPlayer String deriving (Eq, Show)
   data DataFromPlayer Simplest = DFromPlayer Int deriving (Eq, Show)
 
@@ -56,7 +55,7 @@ eng' :: MonadEngine Simplest m => EngineAction Simplest m ()
 eng' = forever $ do
   t <- lift $ setTimeout (Delay 2)
   res <- withTimer t (withPlayer (PID 0) turn)
-  when (isNothing res) $ sendTo (PID 0) (DToPlayer "timeout")
+  when (isNothing res) $ sendToMeta (PID 0) (DToPlayer "timeout")
 
 simplest :: MonadEngine Simplest m => EngineAction Simplest m ()
 simplest = do

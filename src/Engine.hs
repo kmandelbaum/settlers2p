@@ -28,10 +28,15 @@ data EngineMeta = Timeout Timer | EngineMeta
 
 type EnginePipeMeta i o m = Pipe (Either EngineMeta i) (Either EngineMeta o) m
 
+type EnginePipe g m = Pipe (EngineIn g) (EngineOut g) m
+
 type EngineAction g m = EnginePipeMeta (EngineIn g) (EngineOut g) m
 
-sendTo :: Monad m => PlayerId g -> DataToPlayer g -> EngineAction g m ()
-sendTo p d = yield $ Right $ ToPlayer p d
+sendTo :: Monad m => PlayerId g -> DataToPlayer g -> EnginePipe g m ()
+sendTo p d = yield $ ToPlayer p d
+
+sendToMeta :: MonadEngine g m => PlayerId g -> DataToPlayer g -> EngineAction g m ()
+sendToMeta p d = pipeToMeta $ sendTo p d
 
 filterPlayer :: (Monad m, Game g) => PlayerId g -> Pipe (EngineIn g) (DataFromPlayer g) m r
 filterPlayer p = forever $ do

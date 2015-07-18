@@ -1,13 +1,17 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, TypeFamilies, GADTs, DataKinds, StandaloneDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, TypeFamilies, GADTs, DataKinds, StandaloneDeriving , Rank2Types #-}
 module Settlers.Core where
 
 import Data.Functor
-import Data.Sequence
+import qualified Data.Sequence as S
+import Data.Sequence (Seq)
 
 --import qualified Game as G
 import Game as G
 import qualified Engine as E
 import Maps
+import qualified Data.Map as DM
+
+import Control.Lens
 
 data Settlers
 
@@ -54,8 +58,8 @@ data PlayerState =
     psRightRoad :: Bool
   } deriving Show
 
-data OponentState = 
-  OponentState {
+data OpponentState = 
+  OpponentState {
     osHandSize :: Int,
     osBuildings :: Seq Building,
     osResourceLayout :: Seq (UpDown ResourceArea),
@@ -63,33 +67,33 @@ data OponentState =
     osRightRoad :: Bool
   } deriving Show
 
+
+data VisibleState = 
+  VisibleState {
+    vsTurnNo :: Int,
+    vsCurPlayer :: PlayerId Settlers,
+    vsMyState :: PlayerState,
+    vsOpponentState :: OpponentState,
+    vsAbilityDeckSizes :: Seq Int,
+    vsResourceDeckSize :: Int
+  } deriving Show
+
 instance Game Settlers where
 
-  data PlayerId Settlers = Player1 | Player2 deriving (Eq, Show, Enum)
+  data PlayerId Settlers = Player1 | Player2 deriving (Eq, Show, Enum, Ord)
 
   data GameState Settlers = 
     GameState { 
       gsTurnNo :: Int,
       gsCurPlayer :: PlayerId Settlers,
-      gsPlayerStates :: ( PlayerState, PlayerState ),
+      gsPlayerStates :: DM.Map (PlayerId Settlers) PlayerState,
       gsAbilityDecks :: Seq (Seq HandCard),
       gsResourceDeck :: Seq ResourceCard,
-      gsEventsDeck :: Seq EventCard
-    } deriving Show
-
-  data VisibleState Settlers = 
-    VisibleState {
-      vsTurnNo :: Int,
-      vsCurPlayer :: PlayerId Settlers,
-      vsMyState :: PlayerState,
-      vsOponentState :: OponentState,
-      vsAbilityDeckSizes :: Seq Int,
-      vsResourceDecSize :: Int
-    } deriving Show
+      gsEventsDeck :: Seq EventCard } deriving Show
 
   data DataToPlayer Settlers = 
     ShowDeck (Seq DeckCard) ForChoice |
-    UpdateState (VisibleState Settlers) |
+    UpdateState VisibleState |
     Message String deriving Show
 
   data GameSettings Settlers = 
@@ -113,3 +117,19 @@ data DeckCard =
   DHandCard HandCard |
   DEventCard EventCard
   deriving Show
+
+type PId = PlayerId Settlers
+type GSt = GameState Settlers
+type GCfg = GameSettings Settlers
+
+lgsAbilityDecks :: Lens' GSt (Seq (Seq HandCard))
+lgsAbilityDecks = lens gsAbilityDecks $ \gs a -> gs { gsAbilityDecks = a}
+
+lgsPlayerHand :: PId -> Traversal' GSt (Seq HandCard)
+lgsPlayerHand p = lgsPlayerStates . ix p . lpsHand
+
+lpsHand :: Lens' PlayerState (Seq HandCard)
+lpsHand = lens psHand $ \ps h -> ps { psHand = h }
+
+lgsPlayerStates :: Lens' GSt (DM.Map PId PlayerState)
+lgsPlayerStates = lens gsPlayerStates $ \gs a -> gs { gsPlayerStates = a }

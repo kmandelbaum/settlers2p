@@ -7,4 +7,6 @@ import Settlers.Core
 
 type EngineAction m = E.EngineAction Settlers m
 
+type EnginePipe m = E.EnginePipe Settlers m
+
 type MonadEngine m = E.MonadEngine Settlers m
