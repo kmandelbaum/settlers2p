@@ -3,20 +3,24 @@ module Main where
 
 import Settlers.Core
 import Settlers.Game
+import Settlers.ConsoleGameInstances
+import Settlers.Settings
 import Engine
 import EngineMonad
 
 import Control.Monad
 import Control.Monad.State
 
+import System.IO
 import Data.Maybe
 
-import System.IO
 import Pipes
 import Pipes.Concurrent
 import Pipes.PseudoParal
 import qualified Pipes.Prelude as PP
+
 import Game
+import qualified ConsoleGame as CG
 
 deriving instance Show (EngineIn Simplest)
 deriving instance Show (EngineOut Simplest)
@@ -70,17 +74,25 @@ spawnIO o i cln = do
   where
     reader = do
       eof <- isEOF
-      unless eof $ do
+      if not eof then do
         str <- getLine
         continue <- atomically $ send o (FromPlayer (PID 0) (DFromPlayer (read str)))
         if continue then reader else cln
+      else cln
+      
     writer = do
       z <- atomically $ recv i
       if (isJust z) then print (fromJust z) >> writer else cln
 
+settlers = playGame
+
 main :: IO ()
 main = do
-  (i,o,x,cln) <- mkGameRunner (Gs 0) (St 0) eng'
-  spawnIO i o cln
+  (i,o,x,cln) <- mkGameRunner defaultSettings defaultState settlers 
+  CG.spawnConsoleIO i o cln
   x
   return ()
+  --(i,o,x,cln) <- mkGameRunner (Gs 0) (St 0) eng'
+  --spawnIO i o cln
+  --x
+  --return ()

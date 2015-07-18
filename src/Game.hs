@@ -8,11 +8,3 @@ class Eq (PlayerId g) => Game g where
   data VisibleState g
   data DataToPlayer g
   data DataFromPlayer g
-
-class FromString a where
-  fromString :: String -> a
-
-class ToString a where
-  toString :: a -> String
-
-class (Game g, FromString (DataFromPlayer g), ToString (DataToPlayer g)) => ConsoleGame g

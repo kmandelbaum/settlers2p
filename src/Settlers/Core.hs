@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, TypeFamilies, GADTs, DataKinds #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, TypeFamilies, GADTs, DataKinds, StandaloneDeriving #-}
 module Settlers.Core where
 
 import Data.Functor
@@ -18,30 +18,32 @@ type DiceRoll = (Dice, EventDice)
 data ResourceType = RLumber | RWheat | RWool | ROre | RClay | RGold deriving (Show, Eq, Enum)
 
 newtype ResourceAmount = ResourceAmount Int deriving (Eq, Show, Ord)
-data ResourceAmountArea = RZero | ROne | RTwo | RThree
+data ResourceAmountArea = RZero | ROne | RTwo | RThree deriving Show
 
-newtype UpDown a = UpDown (a,a)
+newtype UpDown a = UpDown (a,a) deriving Show
 data ZeroOneTwo a = Zero | One a | Two a a deriving (Show, Eq)
 
-data EventCard = EventCard (Id Event)
+data EventCard = EventCard (Id Event) deriving Show
 data HandCard = AbilityCard (Id Ability) | 
                 SettleExtensionCard (Id SettleExtension) |
-                TownExtensionCard (Id TownExtension)
+                TownExtensionCard (Id TownExtension) deriving Show
 
 -- TODO
-data SettleExtension
-data TownExtension
-data Ability
-data Event
+data SettleExtension = DummySettleExtension
+data TownExtension = DummyTownExtension
+data Ability = DummyAbility
+data Event = DummyEvent
 
-data ExtensionType = SettleExtType | TownExtType
+data ExtensionType = SettleExtType | TownExtType deriving Show
 data BuiltExtension :: ExtensionType -> * where
   BuiltSettleExt :: Id SettleExtension -> BuiltExtension a
   BuiltTownExt :: Id TownExtension -> BuiltExtension TownExtType
 
+deriving instance Show (BuiltExtension a)
+
 data Building = 
   Settlement (UpDown (Maybe (BuiltExtension SettleExtType))) |
-  Town (UpDown (ZeroOneTwo (BuiltExtension TownExtType)))
+  Town (UpDown (ZeroOneTwo (BuiltExtension TownExtType))) deriving Show
 
 data PlayerState = 
   PlayerState {
@@ -50,7 +52,7 @@ data PlayerState =
     psResourceLayout :: Seq (UpDown ResourceArea),
     psLeftRoad :: Bool,
     psRightRoad :: Bool
-  }
+  } deriving Show
 
 data OponentState = 
   OponentState {
@@ -59,7 +61,7 @@ data OponentState =
     osResourceLayout :: Seq (UpDown ResourceArea),
     osLeftRoad :: Bool,
     osRightRoad :: Bool
-  }
+  } deriving Show
 
 instance Game Settlers where
 
@@ -73,7 +75,7 @@ instance Game Settlers where
       gsAbilityDecks :: Seq (Seq HandCard),
       gsResourceDeck :: Seq ResourceCard,
       gsEventsDeck :: Seq EventCard
-    }
+    } deriving Show
 
   data VisibleState Settlers = 
     VisibleState {
@@ -83,12 +85,12 @@ instance Game Settlers where
       vsOponentState :: OponentState,
       vsAbilityDeckSizes :: Seq Int,
       vsResourceDecSize :: Int
-    }
+    } deriving Show
 
   data DataToPlayer Settlers = 
     ShowDeck (Seq DeckCard) ForChoice |
     UpdateState (VisibleState Settlers) |
-    Message String
+    Message String deriving Show
 
   data GameSettings Settlers = 
     GameSettings {
@@ -101,12 +103,13 @@ instance Game Settlers where
 
   data DataFromPlayer Settlers = PlayerChoice Int
 
-data ResourceArea = ResourceArea ResourceType ResourceAmountArea
-data ResourceCard = ResourceCard ResourceType Dice
+data ResourceArea = ResourceArea ResourceType ResourceAmountArea deriving Show
+data ResourceCard = ResourceCard ResourceType Dice deriving Show
 
-data ForChoice = ForChoice Int
+data ForChoice = ForChoice Int deriving Show
 
 data DeckCard =
   DResourceCard ResourceCard | 
   DHandCard HandCard |
   DEventCard EventCard
+  deriving Show
