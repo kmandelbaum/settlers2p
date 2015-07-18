@@ -26,16 +26,14 @@ data EngineOut g = ToPlayer (PlayerId g) (DataToPlayer g)
 
 data EngineMeta = Timeout Timer | EngineMeta
 
-type EnginePipe g i o m = Pipe i o (EngineMonad g m)
+type EnginePipeMeta i o m = Pipe (Either EngineMeta i) (Either EngineMeta o) m
 
-type EnginePipeMeta g i o m = EnginePipe g (Either EngineMeta i) (Either EngineMeta o) m
-
-type EngineAction g m = EnginePipeMeta g (EngineIn g) (EngineOut g) m
+type EngineAction g m = EnginePipeMeta (EngineIn g) (EngineOut g) m
 
 sendTo :: Monad m => PlayerId g -> DataToPlayer g -> EngineAction g m ()
 sendTo p d = yield $ Right $ ToPlayer p d
 
-filterPlayer :: (Monad m, Game g) => PlayerId g -> EnginePipe g (EngineIn g) (DataFromPlayer g) m r
+filterPlayer :: (Monad m, Game g) => PlayerId g -> Pipe (EngineIn g) (DataFromPlayer g) m r
 filterPlayer p = forever $ do
   x <- await
   when (isPlayer p x) $ yield $ getD x
@@ -43,35 +41,35 @@ filterPlayer p = forever $ do
     isPlayer p (FromPlayer p' _) = p == p'
     getD (FromPlayer _ d) = d
 
-toPlayer :: (Monad m, Game g) => PlayerId g -> EnginePipe g (DataToPlayer g) (EngineOut g) m r
+toPlayer :: (Monad m, Game g) => PlayerId g -> Pipe (DataToPlayer g) (EngineOut g) m r
 toPlayer = PP.map . ToPlayer
 
-filterPlayerMeta :: (Monad m, Game g) => PlayerId g -> EnginePipeMeta g (EngineIn g) (DataFromPlayer g) m r
+filterPlayerMeta :: (Monad m, Game g) => PlayerId g -> EnginePipeMeta (EngineIn g) (DataFromPlayer g) m r
 filterPlayerMeta = pipeToMeta . filterPlayer
 
-toPlayerMeta :: (Monad m, Game g) => PlayerId g -> EnginePipeMeta g (DataToPlayer g) (EngineOut g) m r
+toPlayerMeta :: (Monad m, Game g) => PlayerId g -> EnginePipeMeta (DataToPlayer g) (EngineOut g) m r
 toPlayerMeta = pipeToMeta . toPlayer
 
 withPlayer :: 
   (Monad m, Game g) => 
   PlayerId g -> 
-  EnginePipe g (DataFromPlayer g) (DataToPlayer g) m r ->
-  EnginePipe g (EngineIn g) (EngineOut g) m r
+  Pipe (DataFromPlayer g) (DataToPlayer g) m r ->
+  Pipe (EngineIn g) (EngineOut g) m r
 withPlayer p pi = filterPlayer p >-> pi >-> toPlayer p
 
 withPlayerMeta :: 
   (Monad m, Game g) => 
   PlayerId g -> 
-  EnginePipeMeta g (DataFromPlayer g) (DataToPlayer g) m r ->
-  EnginePipeMeta g (EngineIn g) (EngineOut g) m r
+  EnginePipeMeta (DataFromPlayer g) (DataToPlayer g) m r ->
+  EnginePipeMeta (EngineIn g) (EngineOut g) m r
 withPlayerMeta p pi = filterPlayerMeta p >-> pi >-> toPlayerMeta p
 
-pipeToMeta :: Monad m => EnginePipe g i o m r -> EnginePipeMeta g i o m r
+pipeToMeta :: Monad m => Pipe i o m r -> EnginePipeMeta i o m r
 pipeToMeta p = body >~ (p >-> PP.map Right)
   where body = await >>= 
           either ((>> body) . yield . Left) return
 
-withTimer :: Monad m => Timer -> EnginePipe g i o m r -> EnginePipeMeta g i o m (Maybe r)
+withTimer :: MonadTimer m => Timer -> Pipe i o m r -> EnginePipeMeta i o m (Maybe r)
 withTimer t p = guard >-> do
   res <- pipeToMeta p
   lift $ killTimer t
@@ -85,7 +83,7 @@ withTimer t p = guard >-> do
                      else yield x >> guard
         Right d -> yield (Right d) >> guard
 
-runEngineT :: (MonadIO m) => Output (Either EngineMeta i) -> EngineT g m r -> m r
+runEngineT :: (MonadIO m) => Output (Either EngineMeta i) -> EngineT m r -> m r
 runEngineT i eng = go eng (0 :: Int)
   where 
     go e timerId = do
@@ -102,12 +100,16 @@ runEngineT i eng = go eng (0 :: Int)
           go (f ()) timerId
         Return r -> return r
 
-mkGameRunner :: (Applicative m, MonadIO m) => GameSettings g -> GameState g -> EnginePipeMeta g i o m () -> IO (Output i, Input o, m (), IO ())
+mkGameRunner :: MonadIO m => 
+                GameSettings g ->
+                GameState g ->
+                EnginePipeMeta i o (EngineMonad g m) () ->
+                IO (Output i, Input o, m (), IO ())
 mkGameRunner cfg g e = do
   (inChanIn@(Output ii), inChanOut, sealIn) <- liftIO $ spawn' unbounded
   (outChanIn, outChanOut, sealOut) <- liftIO $ spawn' unbounded
-  let z = fmap fst $ runEngineT inChanIn $ runReaderT (runStateT ef g) cfg
-      EM ef = (runEffect (((fromInput inChanOut >-> e) `for` body) >-> toOutput outChanIn)) 
+  let z = runEngineT inChanIn $ runReaderT (evalStateT ef g) cfg
+      EM ef = runEffect $ ((fromInput inChanOut >-> e) `for` body) >-> toOutput outChanIn 
   return (Output (ii . Right), outChanOut, z, atomically(sealIn >> sealOut))
   where body (Right x) = yield x
         body _ = return ()

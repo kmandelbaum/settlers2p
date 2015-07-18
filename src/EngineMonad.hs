@@ -1,5 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, TypeFamilies, GADTs, DataKinds, AllowAmbiguousTypes, DeriveFunctor,
-  MultiParamTypeClasses #-}
+  MultiParamTypeClasses, FlexibleContexts, FlexibleInstances #-}
 module EngineMonad where
 
 import Data.Functor
@@ -14,11 +14,17 @@ import qualified Data.Map as M
 import qualified Control.Concurrent.Timer as T
 import Data.Int
 
+class (MonadReader (GameSettings g) m, MonadState (GameState g) m, MonadTimer m) => MonadEngine g m where
+
+class Monad m => MonadTimer m where
+  setTimeout :: Delay -> m Timer
+  killTimer ::  Timer -> m ()
+
 newtype EngineMonad g m r = 
-  EM (StateT (GameState g) (ReaderT (GameSettings g) (EngineT g m)) r )
+  EM (StateT (GameState g) (ReaderT (GameSettings g) (EngineT m)) r )
   deriving (Functor, Monad, Applicative, MonadState (GameState g), MonadIO, MonadReader(GameSettings g))
 
-type EngineT g m = ProgramT (EngineInstr g m) m
+type EngineT m = ProgramT (EngineInstr m) m
 
 newtype Delay = Delay Int64
 
@@ -27,12 +33,12 @@ data Timer = Timer T.TimerIO Int
 instance Eq Timer where
   Timer _ id1 == Timer _ id2 = id1 == id2
 
-data EngineInstr g (m :: * -> *) r where
-  SetTimeout :: Delay -> EngineInstr g m Timer
-  KillTimer :: Timer -> EngineInstr g m ()
+data EngineInstr (m :: * -> *) r where
+  SetTimeout :: Delay -> EngineInstr m Timer
+  KillTimer :: Timer -> EngineInstr m ()
 
-setTimeout :: Monad m => Delay -> EngineMonad g m Timer
-setTimeout = EM . lift . lift . singleton . SetTimeout
+instance Monad m => MonadTimer (EngineMonad g m) where
+  setTimeout = EM . lift . lift . singleton . SetTimeout
+  killTimer = EM . lift . lift . singleton . KillTimer
 
-killTimer :: Monad m => Timer -> EngineMonad g m ()
-killTimer = EM . lift . lift . singleton . KillTimer
+instance Monad m => MonadEngine g (EngineMonad g m)

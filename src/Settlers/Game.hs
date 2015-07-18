@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts #-}
 module Settlers.Game where
 
 import Settlers.Engine
@@ -17,12 +18,12 @@ import Pipes.PseudoParal
 import qualified Pipes.Prelude as PP
 
 import qualified Engine as E
-import EngineMonad
+import EngineMonad (setTimeout, killTimer, Delay(..))
 
 playTurn :: Monad m => EngineAction m Bool
 playTurn = return False
 
-initPlayer :: Monad m => PlayerId Settlers -> EngineAction m Bool
+initPlayer :: MonadEngine m => PlayerId Settlers -> EngineAction m Bool
 initPlayer p = E.withPlayerMeta p interaction
   where
     interaction = do
@@ -34,12 +35,12 @@ initPlayer p = E.withPlayerMeta p interaction
       cards <- E.withTimer timer $ awaitList initialCardsNo
       return True
 
-startGame :: Monad m => EngineAction m Bool
+startGame :: MonadEngine m => EngineAction m Bool
 startGame = do
   (ok1, ok2) <- paralBoth (initPlayer Player1) (initPlayer Player2)
   return $ ok1 && ok2
 
-playGame :: Monad m => EngineAction m ()
+playGame :: MonadEngine m => EngineAction m ()
 playGame = do
   isOk <- startGame
   when isOk $ while playTurn

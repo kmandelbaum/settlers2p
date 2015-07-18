@@ -1,4 +1,4 @@
-{-# LANGUAGE TypeFamilies, StandaloneDeriving, FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies, StandaloneDeriving, FlexibleInstances, FlexibleContexts #-}
 module Main where
 
 import Settlers.Core
@@ -35,16 +35,16 @@ instance Game Simplest where
   data DataToPlayer Simplest = DToPlayer String deriving (Eq, Show)
   data DataFromPlayer Simplest = DFromPlayer Int deriving (Eq, Show)
 
-eng :: Monad m => EnginePipe 
-  Simplest (DataFromPlayer Simplest) (DataToPlayer Simplest) m r
+eng :: MonadEngine Simplest m => Pipe 
+  (DataFromPlayer Simplest) (DataToPlayer Simplest) m r
 eng = forever $ do
   (DFromPlayer d) <- await
   (St s) <- get
   put (St (s + d))
   yield (DToPlayer $ show (s + d))
 
-turn :: Monad m => EnginePipe 
-  Simplest (DataFromPlayer Simplest) (DataToPlayer Simplest) m ()
+turn :: MonadEngine Simplest m => Pipe 
+  (DataFromPlayer Simplest) (DataToPlayer Simplest) m ()
 turn = do
   (DFromPlayer i) <- await
   (DFromPlayer j) <- await
@@ -52,13 +52,13 @@ turn = do
   put (St (s + i + j))
   yield $ DToPlayer $ show (s + i + j)
 
-eng' :: Monad m => EngineAction Simplest m ()
+eng' :: MonadEngine Simplest m => EngineAction Simplest m ()
 eng' = forever $ do
   t <- lift $ setTimeout (Delay 2)
   res <- withTimer t (withPlayer (PID 0) turn)
   when (isNothing res) $ sendTo (PID 0) (DToPlayer "timeout")
 
-simplest ::Monad m => EngineAction Simplest m ()
+simplest :: MonadEngine Simplest m => EngineAction Simplest m ()
 simplest = do
   withPlayerMeta (PID 0) (pipeToMeta eng)
 
@@ -84,6 +84,7 @@ spawnIO o i cln = do
       z <- atomically $ recv i
       if (isJust z) then print (fromJust z) >> writer else cln
 
+settlers :: MonadEngine Settlers m => EngineAction Settlers m ()
 settlers = playGame
 
 main :: IO ()
