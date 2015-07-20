@@ -19,13 +19,9 @@ import Pipes.Concurrent
 import Pipes.PseudoParal
 import qualified Pipes.Prelude as PP
 
-import Game
 import qualified ConsoleGame as CG
 
-deriving instance Show (EngineIn Simplest)
-deriving instance Show (EngineOut Simplest)
-
-settlers :: MonadEngine Settlers m => EngineAction Settlers m ()
+settlers :: MonadEngine GameSettings GameState m => EngineAction PlayerId DataFromPlayer DataToPlayer m ()
 settlers = playGame
 
 main :: IO ()

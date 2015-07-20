@@ -9,20 +9,19 @@ import Control.Monad.Operational
 import Control.Monad.State
 import Control.Monad.Reader
 
-import Game
 import qualified Data.Map as M
 import qualified Control.Concurrent.Timer as T
 import Data.Int
 
-class (MonadReader (GameSettings g) m, MonadState (GameState g) m, MonadTimer m) => MonadEngine g m where
+class (MonadReader settings m, MonadState state m, MonadTimer m) => MonadEngine settings state m where
 
 class Monad m => MonadTimer m where
   setTimeout :: Delay -> m Timer
   killTimer ::  Timer -> m ()
 
-newtype EngineMonad g m r = 
-  EM (StateT (GameState g) (ReaderT (GameSettings g) (EngineT m)) r )
-  deriving (Functor, Monad, Applicative, MonadState (GameState g), MonadIO, MonadReader(GameSettings g))
+newtype EngineMonad settings state m r = 
+  EM (StateT state (ReaderT settings (EngineT m)) r )
+  deriving (Functor, Monad, Applicative, MonadState state, MonadIO, MonadReader settings)
 
 type EngineT m = ProgramT (EngineInstr m) m
 
@@ -37,8 +36,8 @@ data EngineInstr (m :: * -> *) r where
   SetTimeout :: Delay -> EngineInstr m Timer
   KillTimer :: Timer -> EngineInstr m ()
 
-instance Monad m => MonadTimer (EngineMonad g m) where
+instance Monad m => MonadTimer (EngineMonad settings state m) where
   setTimeout = EM . lift . lift . singleton . SetTimeout
   killTimer = EM . lift . lift . singleton . KillTimer
 
-instance Monad m => MonadEngine g (EngineMonad g m)
+instance Monad m => MonadEngine settings state (EngineMonad settings state m)

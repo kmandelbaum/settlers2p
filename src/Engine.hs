@@ -2,7 +2,6 @@
  TypeFamilies, GADTs, DataKinds, FlexibleContexts #-}
 module Engine where
 
-import Game
 import EngineMonad
 
 import Control.Applicative
@@ -21,24 +20,24 @@ import qualified Pipes.Prelude as PP
 
 import qualified Data.Map as M
 
-data EngineIn g = FromPlayer (PlayerId g) (DataFromPlayer g)
-data EngineOut g = ToPlayer (PlayerId g) (DataToPlayer g)
+data EngineIn p dataIn = FromPlayer p dataIn
+data EngineOut p dataOut = ToPlayer p dataOut
 
 data EngineMeta = Timeout Timer | EngineMeta
 
 type EnginePipeMeta i o m = Pipe (Either EngineMeta i) (Either EngineMeta o) m
 
-type EnginePipe g m = Pipe (EngineIn g) (EngineOut g) m
+type EnginePipe p dataIn dataOut m = Pipe (EngineIn p dataIn) (EngineOut p dataOut) m
 
-type EngineAction g m = EnginePipeMeta (EngineIn g) (EngineOut g) m
+type EngineAction p dataIn dataOut m = EnginePipeMeta (EngineIn p dataIn) (EngineOut p dataOut) m
 
-sendTo :: Monad m => PlayerId g -> DataToPlayer g -> EnginePipe g m ()
+sendTo :: Monad m => p -> dataOut -> EnginePipe p dataIn dataOut m ()
 sendTo p d = yield $ ToPlayer p d
 
-sendToMeta :: MonadEngine g m => PlayerId g -> DataToPlayer g -> EngineAction g m ()
+sendToMeta :: Monad m => p -> dataOut -> EngineAction p dataIn dataOut m ()
 sendToMeta p d = pipeToMeta $ sendTo p d
 
-filterPlayer :: (Monad m, Game g) => PlayerId g -> Pipe (EngineIn g) (DataFromPlayer g) m r
+filterPlayer :: (Monad m, Eq p) => p -> Pipe (EngineIn p dataIn) dataIn m r
 filterPlayer p = forever $ do
   x <- await
   when (isPlayer p x) $ yield $ getD x
@@ -46,27 +45,27 @@ filterPlayer p = forever $ do
     isPlayer p (FromPlayer p' _) = p == p'
     getD (FromPlayer _ d) = d
 
-toPlayer :: (Monad m, Game g) => PlayerId g -> Pipe (DataToPlayer g) (EngineOut g) m r
+toPlayer :: Monad m => p -> Pipe dataOut (EngineOut p dataOut) m r
 toPlayer = PP.map . ToPlayer
 
-filterPlayerMeta :: (Monad m, Game g) => PlayerId g -> EnginePipeMeta (EngineIn g) (DataFromPlayer g) m r
+filterPlayerMeta :: (Monad m, Eq p) => p -> EnginePipeMeta (EngineIn p dataIn) dataIn m r
 filterPlayerMeta = pipeToMeta . filterPlayer
 
-toPlayerMeta :: (Monad m, Game g) => PlayerId g -> EnginePipeMeta (DataToPlayer g) (EngineOut g) m r
+toPlayerMeta :: Monad m => p -> EnginePipeMeta dataOut (EngineOut p dataOut) m r
 toPlayerMeta = pipeToMeta . toPlayer
 
 withPlayer :: 
-  (Monad m, Game g) => 
-  PlayerId g -> 
-  Pipe (DataFromPlayer g) (DataToPlayer g) m r ->
-  Pipe (EngineIn g) (EngineOut g) m r
+  (Monad m, Eq p) => 
+  p -> 
+  Pipe dataIn dataOut m r ->
+  Pipe (EngineIn p dataIn) (EngineOut p dataOut) m r
 withPlayer p pi = filterPlayer p >-> pi >-> toPlayer p
 
 withPlayerMeta :: 
-  (Monad m, Game g) => 
-  PlayerId g -> 
-  EnginePipeMeta (DataFromPlayer g) (DataToPlayer g) m r ->
-  EnginePipeMeta (EngineIn g) (EngineOut g) m r
+  (Monad m, Eq p) => 
+  p -> 
+  EnginePipeMeta dataIn dataOut m r ->
+  EnginePipeMeta (EngineIn p dataIn) (EngineOut p dataOut) m r
 withPlayerMeta p pi = filterPlayerMeta p >-> pi >-> toPlayerMeta p
 
 pipeToMeta :: Monad m => Pipe i o m r -> EnginePipeMeta i o m r
@@ -88,7 +87,7 @@ withTimer t p = guard >-> do
                      else yield x >> guard
         Right d -> yield (Right d) >> guard
 
-runEngineT :: (MonadIO m) => Output (Either EngineMeta i) -> EngineT m r -> m r
+runEngineT :: MonadIO m => Output (Either EngineMeta i) -> EngineT m r -> m r
 runEngineT i eng = go eng (0 :: Int)
   where 
     go e timerId = do
@@ -106,9 +105,9 @@ runEngineT i eng = go eng (0 :: Int)
         Return r -> return r
 
 mkGameRunner :: MonadIO m => 
-                GameSettings g ->
-                GameState g ->
-                EnginePipeMeta i o (EngineMonad g m) () ->
+                gsettings ->
+                gstate ->
+                EnginePipeMeta i o (EngineMonad gsettings gstate m) () ->
                 IO (Output i, Input o, m (), IO ())
 mkGameRunner cfg g e = do
   (inChanIn@(Output ii), inChanOut, sealIn) <- liftIO $ spawn' unbounded

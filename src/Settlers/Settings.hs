@@ -1,14 +1,13 @@
 {-# LANGUAGE TupleSections #-}
 module Settlers.Settings where
 
-import Game
 import Maps
 import Settlers.Core
 import Data.Map as DM
 import qualified Data.Sequence as S
 import Data.Monoid
 
-defaultSettings :: GameSettings Settlers
+defaultSettings :: GameSettings
 defaultSettings = GameSettings {
   cfgSettleExt = idMapFromList $ take 10 (repeat DummySettleExtension),
   cfgTownExt = idMapFromList $ take 5 (repeat DummyTownExtension),
@@ -32,7 +31,7 @@ allAbilityCards = fmap AbilityCard abilityIds <> fmap SettleExtensionCard settle
     settleIds = keys $ cfgSettleExt defaultSettings
     townIds = keys $ cfgTownExt defaultSettings
 
-defaultState :: GameState Settlers
+defaultState :: GameState
 defaultState = GameState {
   gsTurnNo = 0,
   gsCurPlayer = Player1,

@@ -1,14 +1,13 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
 module Settlers.ConsoleGameInstances where
 
 import Settlers.Core
-import Game
 import ConsoleGame
 
-instance ToString (DataToPlayer Settlers) where
+instance ToString DataToPlayer where
   toString = show
 
-instance FromString (DataFromPlayer Settlers) where
+instance FromString DataFromPlayer where
   fromString = PlayerChoice . read
 
-instance (ConsoleGame Settlers)
+instance ConsoleGame PlayerId DataFromPlayer DataToPlayer

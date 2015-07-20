@@ -1,7 +1,6 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts, MultiParamTypeClasses #-}
 module ConsoleGame where
 
-import Game
 import Engine
 import Pipes.Concurrent
 import Control.Concurrent
@@ -14,12 +13,12 @@ class FromString a where
 class ToString a where
   toString :: a -> String
 
-class (Game g, FromString (DataFromPlayer g), ToString (DataToPlayer g), Enum (PlayerId g)) => ConsoleGame g
+class (FromString dataIn, ToString dataOut, Enum p) => ConsoleGame p dataIn dataOut
 
 spawnConsoleIO ::
-  ConsoleGame g =>
-  Output (EngineIn g) ->
-  Input (EngineOut g) ->
+  ConsoleGame p dataIn dataOut =>
+  Output (EngineIn p dataIn) ->
+  Input (EngineOut p dataOut) ->
   IO () ->
   IO ()
 spawnConsoleIO o i cln = do

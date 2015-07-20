@@ -5,15 +5,11 @@ import Data.Functor
 import qualified Data.Sequence as S
 import Data.Sequence (Seq)
 
---import qualified Game as G
-import Game as G
 import qualified Engine as E
 import Maps
 import qualified Data.Map as DM
 
 import Control.Lens
-
-data Settlers
 
 data Dice = D1 | D2 | D3 | D4 | D5 | D6 deriving (Show, Eq, Ord, Enum)
 data EventDice
@@ -71,41 +67,40 @@ data OpponentState =
 data VisibleState = 
   VisibleState {
     vsTurnNo :: Int,
-    vsCurPlayer :: PlayerId Settlers,
+    vsCurPlayer :: PlayerId,
     vsMyState :: PlayerState,
     vsOpponentState :: OpponentState,
     vsAbilityDeckSizes :: Seq Int,
     vsResourceDeckSize :: Int
   } deriving Show
 
-instance Game Settlers where
 
-  data PlayerId Settlers = Player1 | Player2 deriving (Eq, Show, Enum, Ord)
+data PlayerId = Player1 | Player2 deriving (Eq, Show, Enum, Ord)
 
-  data GameState Settlers = 
-    GameState { 
-      gsTurnNo :: Int,
-      gsCurPlayer :: PlayerId Settlers,
-      gsPlayerStates :: DM.Map (PlayerId Settlers) PlayerState,
-      gsAbilityDecks :: Seq (Seq HandCard),
-      gsResourceDeck :: Seq ResourceCard,
-      gsEventsDeck :: Seq EventCard } deriving Show
+data GameState = 
+  GameState { 
+    gsTurnNo :: Int,
+    gsCurPlayer :: PlayerId,
+    gsPlayerStates :: DM.Map PlayerId PlayerState,
+    gsAbilityDecks :: Seq (Seq HandCard),
+    gsResourceDeck :: Seq ResourceCard,
+    gsEventsDeck :: Seq EventCard } deriving Show
 
-  data DataToPlayer Settlers = 
-    ShowDeck (Seq DeckCard) ForChoice |
-    UpdateState VisibleState |
-    Message String deriving Show
+data DataToPlayer = 
+  ShowDeck (Seq DeckCard) ForChoice |
+  UpdateState VisibleState |
+  Message String deriving Show
 
-  data GameSettings Settlers = 
-    GameSettings {
-      cfgSettleExt :: IdMap SettleExtension,
-      cfgTownExt :: IdMap TownExtension,
-      cfgAbility :: IdMap Ability,
-      cfgEvent :: IdMap Event,
-      cfgHandCardsNo :: Int
-    }
+data GameSettings = 
+  GameSettings {
+    cfgSettleExt :: IdMap SettleExtension,
+    cfgTownExt :: IdMap TownExtension,
+    cfgAbility :: IdMap Ability,
+    cfgEvent :: IdMap Event,
+    cfgHandCardsNo :: Int
+  }
 
-  data DataFromPlayer Settlers = PlayerChoice Int
+data DataFromPlayer = PlayerChoice Int
 
 data ResourceArea = ResourceArea ResourceType ResourceAmountArea deriving Show
 data ResourceCard = ResourceCard ResourceType Dice deriving Show
@@ -118,9 +113,9 @@ data DeckCard =
   DEventCard EventCard
   deriving Show
 
-type PId = PlayerId Settlers
-type GSt = GameState Settlers
-type GCfg = GameSettings Settlers
+type PId = PlayerId
+type GSt = GameState
+type GCfg = GameSettings
 
 lgsAbilityDecks :: Lens' GSt (Seq (Seq HandCard))
 lgsAbilityDecks = lens gsAbilityDecks $ \gs a -> gs { gsAbilityDecks = a}

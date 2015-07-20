@@ -4,12 +4,10 @@ import qualified Data.Map as DM
 import Data.List (sort)
 import qualified Data.Sequence as S
 
-
 import Control.Lens
 import Control.Monad
 
 import Maps
-import Game
 
 import Settlers.Core
 
