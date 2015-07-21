@@ -1,4 +1,4 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, TypeFamilies, GADTs, DataKinds, StandaloneDeriving , Rank2Types #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, TypeFamilies, GADTs, DataKinds, StandaloneDeriving , Rank2Types, TemplateHaskell #-}
 module Settlers.Core where
 
 import Data.Functor
@@ -10,6 +10,8 @@ import Maps
 import qualified Data.Map as DM
 
 import Control.Lens
+import Control.Lens.TH
+import Language.Haskell.TH
 
 data Dice = D1 | D2 | D3 | D4 | D5 | D6 deriving (Show, Eq, Ord, Enum)
 data EventDice
@@ -47,11 +49,11 @@ data Building =
 
 data PlayerState = 
   PlayerState {
-    psHand :: Seq HandCard,
-    psBuildings :: Seq Building,
-    psResourceLayout :: Seq (UpDown ResourceArea),
-    psLeftRoad :: Bool,
-    psRightRoad :: Bool
+    _psHand :: Seq HandCard,
+    _psBuildings :: Seq Building,
+    _psResourceLayout :: Seq (UpDown ResourceArea),
+    _psLeftRoad :: Bool,
+    _psRightRoad :: Bool
   } deriving Show
 
 data OpponentState = 
@@ -79,12 +81,12 @@ data PlayerId = Player1 | Player2 deriving (Eq, Show, Enum, Ord)
 
 data GameState = 
   GameState { 
-    gsTurnNo :: Int,
-    gsCurPlayer :: PlayerId,
-    gsPlayerStates :: DM.Map PlayerId PlayerState,
-    gsAbilityDecks :: Seq (Seq HandCard),
-    gsResourceDeck :: Seq ResourceCard,
-    gsEventsDeck :: Seq EventCard } deriving Show
+    _gsTurnNo :: Int,
+    _gsCurPlayer :: PlayerId,
+    _gsPlayerStates :: DM.Map PlayerId PlayerState,
+    _gsAbilityDecks :: Seq (Seq HandCard),
+    _gsResourceDeck :: Seq ResourceCard,
+    _gsEventsDeck :: Seq EventCard } deriving Show
 
 data DataToPlayer = 
   ShowDeck (Seq DeckCard) ForChoice |
@@ -117,14 +119,10 @@ type PId = PlayerId
 type GSt = GameState
 type GCfg = GameSettings
 
-lgsAbilityDecks :: Lens' GSt (Seq (Seq HandCard))
-lgsAbilityDecks = lens gsAbilityDecks $ \gs a -> gs { gsAbilityDecks = a}
+--makeLensesFor (map (\x -> (x,'l':x)) ["gsAbilityDecks", "gsPlayerStates"]) ''GameState
+--makeLensesFor (map (\x -> (x,'l':x)) ["psHand"]) ''PlayerState
+makeLenses ''GameState
+makeLenses ''PlayerState
 
 lgsPlayerHand :: PId -> Traversal' GSt (Seq HandCard)
-lgsPlayerHand p = lgsPlayerStates . ix p . lpsHand
-
-lpsHand :: Lens' PlayerState (Seq HandCard)
-lpsHand = lens psHand $ \ps h -> ps { psHand = h }
-
-lgsPlayerStates :: Lens' GSt (DM.Map PId PlayerState)
-lgsPlayerStates = lens gsPlayerStates $ \gs a -> gs { gsPlayerStates = a }
+lgsPlayerHand p = gsPlayerStates . ix p . psHand

@@ -13,20 +13,20 @@ import Settlers.Core
 
 getVisibleState :: GSt -> PId -> VisibleState
 getVisibleState g p = VisibleState {
-  vsTurnNo = gsTurnNo g,
-  vsCurPlayer = gsCurPlayer g,
-  vsMyState = gsPlayerStates g DM.! p,
-  vsOpponentState = toOpponentState (gsPlayerStates g DM.! opponent p),
-  vsAbilityDeckSizes = fmap length $ gsAbilityDecks g,
-  vsResourceDeckSize = length $ gsResourceDeck g
+  vsTurnNo = view gsTurnNo g,
+  vsCurPlayer = view gsCurPlayer g,
+  vsMyState = view gsPlayerStates g DM.! p,
+  vsOpponentState = toOpponentState (view gsPlayerStates g DM.! opponent p),
+  vsAbilityDeckSizes = fmap length $ view gsAbilityDecks g,
+  vsResourceDeckSize = length $ view gsResourceDeck g
 }
   where
     toOpponentState ps = OpponentState {
-      osHandSize = length $ psHand ps,
-      osBuildings = psBuildings ps,
-      osResourceLayout = psResourceLayout ps,
-      osLeftRoad = psLeftRoad ps,
-      osRightRoad = psRightRoad ps
+      osHandSize = length $ view psHand ps,
+      osBuildings = view psBuildings ps,
+      osResourceLayout = view psResourceLayout ps,
+      osLeftRoad = view psLeftRoad ps,
+      osRightRoad = view psRightRoad ps
     }
 
 opponent :: PId -> PId
@@ -40,7 +40,7 @@ drawAbilityCards p deckNo cardsNo gs = do
   return (gs & lDeck %~ (remove sCardsNo) & lgsPlayerHand p %~ (cards S.><))
   where 
     lDeck :: Traversal' GSt (S.Seq HandCard)
-    lDeck = lgsAbilityDecks . ix deckNo
+    lDeck = gsAbilityDecks . ix deckNo
     sCardsNo = sort cardsNo
 
 -- idxs should be sorted

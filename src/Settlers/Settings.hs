@@ -18,11 +18,11 @@ defaultSettings = GameSettings {
 
 defaultPlayerState :: PlayerState
 defaultPlayerState = PlayerState {
-  psHand = S.empty,
-  psBuildings = S.empty,
-  psResourceLayout = S.empty,
-  psLeftRoad = False,
-  psRightRoad = False
+  _psHand = S.empty,
+  _psBuildings = S.empty,
+  _psResourceLayout = S.empty,
+  _psLeftRoad = False,
+  _psRightRoad = False
 }
 
 allAbilityCards = fmap AbilityCard abilityIds <> fmap SettleExtensionCard settleIds <> fmap TownExtensionCard townIds
@@ -33,12 +33,12 @@ allAbilityCards = fmap AbilityCard abilityIds <> fmap SettleExtensionCard settle
 
 defaultState :: GameState
 defaultState = GameState {
-  gsTurnNo = 0,
-  gsCurPlayer = Player1,
-  gsPlayerStates = DM.fromList $ fmap (,defaultPlayerState) [Player1, Player2],
-  gsAbilityDecks = S.fromList $ fmap S.fromList $ splitInto 5 allAbilityCards,
-  gsResourceDeck = S.empty,
-  gsEventsDeck = S.empty
+  _gsTurnNo = 0,
+  _gsCurPlayer = Player1,
+  _gsPlayerStates = DM.fromList $ fmap (,defaultPlayerState) [Player1, Player2],
+  _gsAbilityDecks = S.fromList $ fmap S.fromList $ splitInto 5 allAbilityCards,
+  _gsResourceDeck = S.empty,
+  _gsEventsDeck = S.empty
 }
 
 splitInto :: Int -> [a] -> [[a]]

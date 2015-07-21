@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts, Rank2Types #-}
 module Settlers.Game where
 
 import Data.Maybe
@@ -20,16 +20,17 @@ import qualified Pipes.Prelude as PP
 
 import qualified Engine as E
 import EngineMonad (setTimeout, killTimer, Delay(..))
+import Control.Lens
 
-playTurn :: Monad m => EngineAction m Bool
+playTurn :: Act Bool
 playTurn = return False
 
-initPlayer :: MonadEngine m => PId -> EngineAction m Bool
+initPlayer :: PId -> Act Bool
 initPlayer p = E.withPlayerMeta p $ do
   g <- get
   initialCardsNo <- cfgHandCardsNo <$> ask
   let deckNo = fromEnum p
-      deck = fmap DHandCard $ gsAbilityDecks g `S.index` deckNo
+      deck = fmap DHandCard $ view gsAbilityDecks g `S.index` deckNo
   E.pipeToMeta $ yield $ ShowDeck deck $ ForChoice initialCardsNo
   timer <- lift $ setTimeout (Delay 60)
   r <- E.withTimer timer $ awaitList initialCardsNo
@@ -47,22 +48,22 @@ initPlayer p = E.withPlayerMeta p $ do
       return ok
     Nothing -> return False
 
-updateState :: MonadEngine m => PId -> EngineAction m ()
+updateState :: PId -> Act ()
 updateState p = do
   g <- get
   E.sendToMeta p $ UpdateState $ getVisibleState g p
 
-updateStates :: MonadEngine m => EngineAction m ()
+updateStates :: Act ()
 updateStates = mapM_ updateState [Player1, Player2]
 
-startGame :: MonadEngine m => EngineAction m Bool
+startGame :: Act Bool
 startGame = do
   updateStates
   (ok1, ok2) <- paralBoth (initPlayer Player1) (initPlayer Player2)
   when (ok1 && ok2) $ updateStates 
   return $ ok1 && ok2
 
-playGame :: MonadEngine m => EngineAction m ()
+playGame :: Act ()
 playGame = do
   isOk <- startGame
   when isOk $ while playTurn
