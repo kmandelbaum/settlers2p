@@ -5,13 +5,14 @@ import Data.Functor
 import qualified Data.Sequence as S
 import Data.Sequence (Seq)
 
-import qualified Engine as E
 import Maps
 import qualified Data.Map as DM
 
 import Control.Lens
 import Control.Lens.TH
 import Language.Haskell.TH
+
+import qualified Engine as E
 
 data Dice = D1 | D2 | D3 | D4 | D5 | D6 deriving (Show, Eq, Ord, Enum)
 data EventDice
@@ -86,7 +87,8 @@ data GameState =
     _gsPlayerStates :: DM.Map PlayerId PlayerState,
     _gsAbilityDecks :: Seq (Seq HandCard),
     _gsResourceDeck :: Seq ResourceCard,
-    _gsEventsDeck :: Seq EventCard } deriving Show
+    _gsEventsDeck :: Seq EventCard
+  } deriving Show
 
 data DataToPlayer = 
   ShowDeck (Seq DeckCard) ForChoice |

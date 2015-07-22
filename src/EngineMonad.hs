@@ -1,15 +1,12 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, TypeFamilies, GADTs, DataKinds, AllowAmbiguousTypes, DeriveFunctor,
-  MultiParamTypeClasses, FlexibleContexts, FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving, GADTs,
+  MultiParamTypeClasses, KindSignatures, FlexibleInstances #-}
 module EngineMonad where
 
 import Data.Functor
-import Control.Monad
-import Control.Applicative
 import Control.Monad.Operational
 import Control.Monad.State
 import Control.Monad.Reader
 
-import qualified Data.Map as M
 import qualified Control.Concurrent.Timer as T
 import Data.Int
 

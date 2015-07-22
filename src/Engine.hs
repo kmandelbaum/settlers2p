@@ -1,11 +1,8 @@
-{-# LANGUAGE GeneralizedNewtypeDeriving, 
- TypeFamilies, GADTs, DataKinds, FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 module Engine where
 
 import EngineMonad
 
-import Control.Applicative
-import Control.Monad
 import Control.Monad.Operational
 import Control.Monad.State
 import Control.Monad.Reader
@@ -15,10 +12,7 @@ import qualified Control.Concurrent.Suspend as Suspend
 
 import Pipes
 import Pipes.Concurrent
-import Pipes.PseudoParal
 import qualified Pipes.Prelude as PP
-
-import qualified Data.Map as M
 
 data EngineIn p dataIn = FromPlayer p dataIn
 data EngineOut p dataOut = ToPlayer p dataOut
